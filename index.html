@@ -15,29 +15,19 @@
 <body>
   <div class="wrap">
     <button id="close" aria-label="Close" onclick="ctClose()">&times;</button>
+    <!-- Tap-to-play: no autoplay -> poster + play button. One tap plays WITH sound. -->
     <video id="ctVideo"
            src="https://cdn.jsdelivr.net/gh/Vikaswiom/wiom-inapp-video@main/seva_stithi_full_v19.mp4?playsinline=1"
            poster="https://cdn.jsdelivr.net/gh/Vikaswiom/wiom-inapp-video@main/poster.jpg"
-           autoplay playsinline webkit-playsinline controls
+           playsinline webkit-playsinline controls
            preload="auto" controlsList="nodownload"></video>
     <script>
       (function () {
         var v = document.getElementById('ctVideo');
-        v.muted = false; v.volume = 1;                 // ask for sound on
-        var p = v.play();
-        if (p && p.catch) {
-          p.catch(function () {                          // WebView blocked sound -> autoplay MUTED so it always plays
-            v.muted = true; v.play();
-          });
-        }
-        // Turn sound on at the first screen touch (the only moment the WebView allows it)
-        function firstUnmute(){
-          v.muted = false; v.volume = 1;
-          document.removeEventListener('pointerdown', firstUnmute, true);
-          document.removeEventListener('touchstart', firstUnmute, true);
-        }
-        document.addEventListener('pointerdown', firstUnmute, true);
-        document.addEventListener('touchstart', firstUnmute, true);
+        function soundOn(){ v.muted = false; v.volume = 1; }   // ensure audio plays on tap
+        soundOn();
+        v.addEventListener('play', soundOn);
+        v.addEventListener('loadedmetadata', soundOn);
       })();
       function ctClose(){
         try{
