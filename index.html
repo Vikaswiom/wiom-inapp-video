@@ -17,8 +17,9 @@
     <button id="close" aria-label="Close" onclick="ctClose()">&times;</button>
     <video id="ctVideo"
            src="https://cdn.jsdelivr.net/gh/Vikaswiom/wiom-inapp-video@main/seva_stithi_full_v19.mp4?playsinline=1"
+           poster="https://cdn.jsdelivr.net/gh/Vikaswiom/wiom-inapp-video@main/poster.jpg"
            autoplay playsinline webkit-playsinline controls
-           controlsList="nodownload"></video>
+           preload="auto" controlsList="nodownload"></video>
     <script>
       (function () {
         var v = document.getElementById('ctVideo');
