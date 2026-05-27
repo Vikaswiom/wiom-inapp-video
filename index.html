@@ -7,9 +7,20 @@
   html,body{margin:0;height:100%;background:#000;}
   .wrap{position:fixed;inset:0;width:100%;height:100%;}
   #ctVideo{width:100%;height:100%;object-fit:contain;background:#000;}
-  #close{position:absolute;top:14px;right:14px;z-index:5;width:38px;height:38px;
+  #close{position:absolute;top:14px;right:14px;z-index:6;width:38px;height:38px;
          border:0;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;
          font:700 22px/38px sans-serif;cursor:pointer;}
+  /* Always-visible custom control bar */
+  #bar{position:absolute;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;
+       gap:12px;padding:12px 16px;box-sizing:border-box;
+       background:linear-gradient(transparent,rgba(0,0,0,.8));
+       font:600 13px/1 sans-serif;color:#fff;}
+  #pp,#mute{flex:0 0 auto;background:none;border:0;color:#fff;font-size:20px;
+            line-height:1;padding:0;cursor:pointer;}
+  #seek{position:relative;flex:1 1 auto;height:6px;border-radius:3px;
+        background:rgba(255,255,255,.35);cursor:pointer;}
+  #fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;background:#e6007e;}
+  #time{flex:0 0 auto;font-variant-numeric:tabular-nums;white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -18,20 +29,61 @@
     <video id="ctVideo"
            src="https://cdn.jsdelivr.net/gh/Vikaswiom/wiom-inapp-video@main/seva_stithi_full_v19.mp4?playsinline=1"
            poster="https://cdn.jsdelivr.net/gh/Vikaswiom/wiom-inapp-video@main/poster.jpg"
-           autoplay playsinline webkit-playsinline controls
-           preload="auto" controlsList="nodownload"></video>
+           autoplay playsinline webkit-playsinline preload="auto"></video>
+
+    <div id="bar">
+      <button id="pp" aria-label="Play / Pause">&#10073;&#10073;</button>
+      <div id="seek"><div id="fill"></div></div>
+      <span id="time">0:00 / 0:00</span>
+      <button id="mute" aria-label="Sound">&#128263;</button>
+    </div>
+
     <script>
       (function () {
         var v = document.getElementById('ctVideo');
-        v.muted = false; v.volume = 1;                 // prefer sound on
-        var p = v.play();
-        if (p && p.catch) {
-          p.catch(function () {                          // sound blocked -> autoplay MUTED so it ALWAYS plays
-            v.muted = true;
-            v.play();
-          });
+        var pp = document.getElementById('pp');
+        var seek = document.getElementById('seek');
+        var fill = document.getElementById('fill');
+        var time = document.getElementById('time');
+        var mute = document.getElementById('mute');
+
+        function fmt(s){ s=Math.max(0,Math.floor(s||0)); var m=Math.floor(s/60),ss=s%60; return m+':'+(ss<10?'0':'')+ss; }
+        function updTime(){ time.textContent = fmt(v.currentTime)+' / '+fmt(v.duration); }
+        function updMute(){ mute.innerHTML = v.muted ? '&#128263;' : '&#128266;'; }
+        function updPP(){ pp.innerHTML = v.paused ? '&#9654;' : '&#10073;&#10073;'; }
+
+        v.addEventListener('loadedmetadata', function(){ updTime(); updPP(); updMute(); });
+        v.addEventListener('timeupdate', function(){
+          if(v.duration){ fill.style.width = (v.currentTime/v.duration*100)+'%'; }
+          updTime();
+        });
+        v.addEventListener('play', updPP);
+        v.addEventListener('pause', updPP);
+
+        pp.addEventListener('click', function(){ v.paused ? v.play() : v.pause(); });
+        mute.addEventListener('click', function(){ v.muted=!v.muted; if(!v.muted) v.volume=1; updMute(); });
+        seek.addEventListener('click', function(e){
+          var r=seek.getBoundingClientRect();
+          var ratio=Math.min(1,Math.max(0,(e.clientX-r.left)/r.width));
+          if(v.duration){ v.currentTime = ratio*v.duration; }
+        });
+
+        // Start: prefer sound; if WebView blocks it, autoplay MUTED so it ALWAYS plays.
+        v.muted=false; v.volume=1;
+        var p=v.play();
+        if(p&&p.catch){ p.catch(function(){ v.muted=true; v.play(); updMute(); }); }
+        updMute(); updPP();
+
+        // Unmute on the very first screen touch (closest to unmuted-by-default this WebView allows).
+        function firstUnmute(){
+          v.muted=false; v.volume=1; updMute();
+          document.removeEventListener('pointerdown', firstUnmute, true);
+          document.removeEventListener('touchstart', firstUnmute, true);
         }
+        document.addEventListener('pointerdown', firstUnmute, true);
+        document.addEventListener('touchstart', firstUnmute, true);
       })();
+
       function ctClose(){
         try{
           if(window.CleverTap && window.CleverTap.dismissInAppNotification){
