@@ -33,28 +33,31 @@ is blocked until a user gesture. This is enforced at the **native layer**, so:
 - YouTube embed — separate failure (Error 153) and YouTube also cannot autoplay with sound.
 - Any change to the campaign HTML — cannot override a native WebView setting.
 
-## Fix (app side — required)
-Disable the user-gesture media requirement on the WebView that renders CleverTap in-app HTML:
+## Dev team confirmation (2026-05-27)
+WIOM mobile dev team reviewed and confirmed this is **not app-fixable**:
+- The in-app WebView is created **internally by the CleverTap SDK**; the app never touches it.
+- `CleverTapInAppListener.kt` only receives lifecycle callbacks (show/dismiss/click) — **no WebView access**.
+- The SDK exposes **no API** to set `mediaPlaybackRequiresUserGesture = false` on its in-app WebView.
+- The OS rejects the unmuted `play()` **before** the campaign JS runs — no HTML/JS can override a native `WebSettings` flag.
+
+**Conclusion: neither an app-side change nor a campaign-HTML change can fix this.**
+
+## Fix — CleverTap SDK change (via CleverTap support ticket)
+CleverTap must add one line in their SDK's in-app WebView initialization:
 
 **Android**
 ```java
 webView.getSettings().setMediaPlaybackRequiresUserGesture(false);
 ```
 
-**iOS (WKWebView)**
+**iOS (WKWebView equivalent)**
 ```swift
-let config = WKWebViewConfiguration()
 config.allowsInlineMediaPlayback = true
 config.mediaTypesRequiringUserActionForPlayback = []   // [] = no gesture required
 ```
 
-## Key dependency / action items
-The in-app HTML WebView is created **internally by the CleverTap SDK**, not directly by our app:
-1. Check whether the integrated CleverTap SDK version exposes a hook to set
-   `mediaPlaybackRequiresUserGesture` / `mediaTypesRequiringUserActionForPlayback`
-   on the in-app WebView.
-2. If it is not configurable from our side, raise with **CleverTap support**: request enabling
-   autoplay-with-sound (disabling the user-gesture media policy) for custom-HTML in-app notifications.
+Action: **raise a support ticket with CleverTap** requesting this change (ideally exposed as an
+opt-in flag). Until CleverTap ships it, no app or campaign change will enable autoplay-with-sound.
 
 ## Interim (until the fix ships)
 Campaign goes live with one of:
