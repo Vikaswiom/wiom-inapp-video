@@ -7,10 +7,6 @@
   html,body{margin:0;height:100%;background:#000;}
   .wrap{position:fixed;inset:0;width:100%;height:100%;}
   #ctVideo{width:100%;height:100%;object-fit:contain;background:#000;}
-  #unmute{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-          padding:16px 26px;border:0;border-radius:40px;cursor:pointer;
-          background:rgba(0,0,0,.78);color:#fff;font:700 18px/1 sans-serif;
-          display:none;box-shadow:0 4px 16px rgba(0,0,0,.5);}
   #close{position:absolute;top:14px;right:14px;z-index:5;width:38px;height:38px;
          border:0;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;
          font:700 22px/38px sans-serif;cursor:pointer;}
@@ -19,33 +15,19 @@
 <body>
   <div class="wrap">
     <button id="close" aria-label="Close" onclick="ctClose()">&times;</button>
-
     <video id="ctVideo"
            src="https://cdn.jsdelivr.net/gh/Vikaswiom/wiom-inapp-video@main/seva_stithi_full_v19.mp4?playsinline=1"
            autoplay playsinline webkit-playsinline controls
            controlsList="nodownload"></video>
-
-    <button id="unmute">&#128266;&nbsp; Tap for sound</button>
-
     <script>
       (function () {
         var v = document.getElementById('ctVideo');
-        var btn = document.getElementById('unmute');
-        v.muted = false; v.volume = 1;                 // try sound ON first
+        function soundOn(){ v.muted = false; v.volume = 1; }   // unmuted by default
+        soundOn();
+        v.addEventListener('loadedmetadata', soundOn);
         var p = v.play();
-        if (p && p.catch) {
-          p.catch(function () {                          // WebView blocked sound-on autoplay
-            v.muted = true; v.play();
-            btn.style.display = 'block';
-          });
-        }
-        setTimeout(function(){ if (v.muted) btn.style.display = 'block'; }, 600);
-        btn.addEventListener('click', function () {
-          v.muted = false; v.volume = 1; v.play();
-          btn.style.display = 'none';
-        });
+        if (p && p.catch) { p.catch(function(){ soundOn(); v.play(); }); }
       })();
-
       function ctClose(){
         try{
           if(window.CleverTap && window.CleverTap.dismissInAppNotification){
